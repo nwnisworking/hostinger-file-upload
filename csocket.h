@@ -1,44 +1,42 @@
 #pragma once
 
 #include <string>
-#include <variant>
-#include <tuple>
+#include <atomic>
 
 #include <winsock2.h>
 #include <Ws2tcpip.h>
 
 #pragma comment(lib, "Ws2_32.lib")
 
-#define CS_NONBLOCK 1;
-#define CS_REUSEADDR 2;
-
+#define CS_NONBLOCK 1 << 0
+#define CS_REUSEADDR 1 << 1
 
 using std::string;
-using std::variant;
-using std::tuple;
+using std::atomic;
 
-class csocket {
-private:
-	static WSADATA data;
-	static bool is_init;
+class csocket
+{
+  private: 
+  static bool is_init;
+  static WSADATA data;
 
-	string ip;
-	unsigned short port;
-	addrinfo hint;
-	fd_set socks = {};
+  SOCKET socket;
+  fd_set master;
 
-public:
-	SOCKET sock = INVALID_SOCKET;
+  bool setopt(int option, string &error);
+  bool create_socket(addrinfo **res, string &error);
+  public:
+  string ip;
+  unsigned short port;
+  addrinfo hint;
+  bool is_server = false;
 
-	csocket(string ip, unsigned short port, addrinfo hint);
-	~csocket();
-	template<typename ...Args>
-	bool client(Args ...args);
-	template<typename ...Args>
-	bool server(Args ...args);
-	template<typename ...Args>
-	bool setopt(Args ...args);
-	bool start();
-
-	static csocket create(string ip, unsigned short port, int type);
+  csocket(string ip, unsigned short port, addrinfo hint);
+  ~csocket();
+  bool client(int option, string &error);
+  bool server(int option, string &error);
+  bool is_ipv4();
+  bool is_ipv6();
+  void start(atomic<bool> &flag, int size, timeval time);
+  static csocket create(string ip, unsigned short port, int type);
 };
